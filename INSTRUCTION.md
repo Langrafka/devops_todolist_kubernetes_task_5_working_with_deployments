@@ -4,8 +4,7 @@ How to deploy the Todoapp to Kubernetes
 
 Всі ресурси, пов'язані з застосунком, будуть розгорнуті у просторі імен mateapp.
 
-kubectl create name
-space mateapp
+kubectl create namespace mateapp
 
 
 2. Розгортання Маніфестів
