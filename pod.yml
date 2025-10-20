@@ -9,6 +9,7 @@ spec:
   containers:
   - name: todoapp
     image: ikulyk404/todoapp:3.0.0
+    imagePullPolicy: IfNotPresent # Додано ImagePullPolicy
     ports:
       - containerPort: 8000
     resources:
@@ -20,13 +21,13 @@ spec:
         cpu: "250m"
     livenessProbe:
       httpGet:
-        path: /api/health
+        path: /api/liveness # Виправлено шлях проби
         port: 8000
       initialDelaySeconds: 60
       periodSeconds: 5
     readinessProbe:
       httpGet:
-        path: /api/ready
+        path: /api/readiness # Виправлено шлях проби
         port: 8000
       initialDelaySeconds: 15
       periodSeconds: 5

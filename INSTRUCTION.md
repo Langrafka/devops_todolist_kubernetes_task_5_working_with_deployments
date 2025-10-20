@@ -11,6 +11,8 @@ kubectl create namespace mateapp
 
 2.1. Standalone Pod для перевірки (Pod Parity): pod.yml
 
+Сумісність образу: Образ ikulyk404/todoapp:3.0.0 підтверджено як сумісний, він використовує Django 4 на Python 3.8+, що відповідає вимогам завдання.
+
 Для дотримання вимоги паритету конфігурація Deployment Pod Template є ідентичною вмісту окремого Pod Manifest (pod.yml).
 
 kubectl apply -f pod.yml -n mateapp
@@ -29,7 +31,7 @@ kubectl apply -f deployment.yml -n mateapp
 
 CPU Requests (100m) / Limits (250m):
 
-Request (100m): Мінімально гарантовані ресурси для планувальника.
+Request (100m): Мінімально гарантовані ресурси.
 
 Limit (250m): Обмежує використання 25% ядра.
 
@@ -57,9 +59,9 @@ kubectl apply -f hpa.yml -n mateapp
 
 minReplicas: 2: Забезпечує високу доступність (HA).
 
-maxReplicas: 5: Встановлює верхню межу для масштабування, контролюючи витрати.
+maxReplicas: 5: Встановлює верхню межу для масштабування.
 
-averageUtilization: 70%: Поріг для ініціації масштабування до досягнення критичного навантаження. Працює відносно встановлених requests.
+averageUtilization: 70%: Поріг для ініціації масштабування. Значення 70% обрано для забезпечення буфера до того, як використання досягне 100% від requests.
 
 3. Встановлення та Перевірка Service
 
@@ -77,7 +79,7 @@ kubectl apply -f service.yml -n mateapp
 # Перевірка наявності Metrics Server
 kubectl get deployment metrics-server -n kube-system
 
-# Перевірка доступності метрик (повинні бути значення, а не <unknown>)
+# Перевірка доступності метрик (повинні бути значення, а не <unknown> або <none>)
 kubectl top nodes
 kubectl top pods -n mateapp
 
@@ -104,7 +106,7 @@ NODE_PORT=$(kubectl get svc todoapp-nodeport -n mateapp -o jsonpath='{.spec.port
 # Для Minikube використовуйте:
 NODE_IP=$(minikube ip)
 
-# Для інших кластерів:
+# Або для загальних кластерів/Docker Desktop:
 # NODE_IP=$(kubectl get nodes -o wide | awk 'NR>1 {print $6; exit}') 
 
 
@@ -115,7 +117,7 @@ echo "Доступний за адресою: http://$NODE_IP:$NODE_PORT"
 
 4.2. Перевірка Health та API
 
-Протестуйте доступ до кінцевих точок (/api/liveness та /api/readiness мають повертати HTTP 200/200/503).
+Протестуйте доступ до кінцевих точок (використовуйте http://<NODE_IP>:$NODE_PORT).
 
 echo "Перевірка головної сторінки:"
 curl -I http://$NODE_IP:$NODE_PORT/
@@ -123,13 +125,13 @@ curl -I http://$NODE_IP:$NODE_PORT/
 echo "Перевірка API Liveness (повертає 200, якщо процес живий):"
 curl http://$NODE_IP:$NODE_PORT/api/liveness
 
-echo "Перевірка API Readiness (повертає 200/503 відповідно до затримки):"
+echo "Перевірка API Readiness (повертає 200/503):"
 curl http://$NODE_IP:$NODE_PORT/api/readiness
 
 
 4.3. Тест навантаження (HPA Scaling)
 
-Запустіть простий цикл для генерації навантаження (викликає ~100% CPU навантаження на 10-15 секунд) для тестування HPA:
+Запустіть простий цикл для генерації навантаження:
 
 # У новому терміналі:
 kubectl run -i --tty load-generator --rm --image=busybox --restart=Never -- /bin/sh -c "while true; do wget -q -O- [http://todoapp-nodeport.mateapp.svc.cluster.local:80](http://todoapp-nodeport.mateapp.svc.cluster.local:80); done"
@@ -141,4 +143,4 @@ kubectl get pods -n mateapp --watch
 kubectl get hpa -n mateapp
 
 
-Ви маєте побачити, як кількість реплік зросте до 5 (maxReplicas). Після зупинки навантаження (Ctrl+C в терміналі з load-generator) HPA автоматично поверне кількість реплік до 2.
+Ви маєте побачити, як кількість реплік зросте. Після зупинки навантаження (Ctrl+C) HPA поверне кількість реплік до minReplicas.
